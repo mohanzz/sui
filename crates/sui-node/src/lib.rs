@@ -5,19 +5,26 @@ use anyhow::Result;
 use futures::TryFutureExt;
 use parking_lot::Mutex;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
+
+use anyhow::Result;
+use jsonrpsee::ws_server::WsServerBuilder;
+use tracing::info;
+
 use sui_config::NodeConfig;
 use sui_core::authority_server::ValidatorService;
+use sui_core::gateway_types::SuiEvent;
 use sui_core::{
     authority::{AuthorityState, AuthorityStore},
     authority_active::{gossip::gossip_process, ActiveAuthority},
     authority_client::NetworkAuthorityClient,
     checkpoints::CheckpointStore,
 };
+use sui_gateway::event_api::EventApiServer;
+use sui_gateway::event_api::{EventApiImpl, EventType, SuiEventManager};
 use sui_gateway::json_rpc::JsonRpcServerBuilder;
 use sui_gateway::read_api::{FullNodeApi, ReadApi};
 use sui_network::api::ValidatorServer;
 use sui_storage::IndexStore;
-use tracing::info;
 
 pub struct SuiNode {
     grpc_server: tokio::task::JoinHandle<Result<()>>,
@@ -133,10 +140,43 @@ impl SuiNode {
             None
         } else {
             let mut server = JsonRpcServerBuilder::new()?;
-            server.register_module(ReadApi::new(state.clone()))?;
-            server.register_module(FullNodeApi::new(state.clone()))?;
+            server.register_module(ReadApi::new(fullnode.state.clone()))?;
+            server.register_module(FullNodeApi::new(fullnode.state))?;
 
             let server_handle = server.start(config.json_rpc_address).await?;
+
+            let ws_server = WsServerBuilder::default().build("127.0.0.1:0").await?;
+            let server_addr = ws_server.local_addr()?;
+            let event_manager = Arc::new(SuiEventManager::default());
+            let handle = ws_server.start(EventApiImpl::new(event_manager.clone()).into_rpc())?;
+
+            info!("Starting WS endpoint at ws://{}", server_addr);
+
+            // Stub event emitter.
+            std::thread::spawn(move || {
+                let mut num = 1;
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                    event_manager.broadcast(
+                        EventType::Foo,
+                        SuiEvent {
+                            type_: "Foo".to_string(),
+                            contents: vec![num],
+                        },
+                    );
+                    event_manager.broadcast(
+                        EventType::Bar,
+                        SuiEvent {
+                            type_: "Bar".to_string(),
+                            contents: vec![num],
+                        },
+                    );
+                    num += 1;
+                }
+            });
+
+            server_handle.await;
+            handle.await;
             Some(server_handle)
         };
 

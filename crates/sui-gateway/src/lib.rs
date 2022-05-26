@@ -3,6 +3,7 @@
 
 pub mod api;
 pub mod config;
+pub mod event_api;
 pub mod json_rpc;
 pub mod read_api;
 pub mod rpc_gateway;
