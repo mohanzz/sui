@@ -97,7 +97,7 @@ where
                 // Add more duration if we make more than 1 to ensure overlap
                 debug!("Starting gossip from peer {:?}", name);
                 peer_gossip
-                    .spawn(Duration::from_secs(REFRESH_FOLLOWER_PERIOD_SECS + k * 15))
+                    .start(Duration::from_secs(REFRESH_FOLLOWER_PERIOD_SECS + k * 15))
                     .await
             });
             k += 1;
@@ -195,20 +195,10 @@ where
         }
     }
 
-    pub async fn spawn(mut self, duration: Duration) -> (AuthorityName, Result<(), SuiError>) {
+    pub async fn start(mut self, duration: Duration) -> (AuthorityName, Result<(), SuiError>) {
         let peer_name = self.peer_name;
-        let result =
-            tokio::task::spawn(async move { self.peer_gossip_for_duration(duration).await }).await;
-
-        match result {
-            Err(_e) => (
-                peer_name,
-                Err(SuiError::GenericAuthorityError {
-                    error: "Gossip Join Error".to_string(),
-                }),
-            ),
-            Ok(r) => (peer_name, r),
-        }
+        let result = self.peer_gossip_for_duration(duration).await;
+        (peer_name, result)
     }
 
     async fn peer_gossip_for_duration(&mut self, duration: Duration) -> Result<(), SuiError> {
