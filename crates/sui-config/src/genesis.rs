@@ -83,7 +83,7 @@ pub struct Builder {
     move_modules: Vec<Vec<CompiledModule>>,
     objects: Vec<Object>,
     genesis_ctx: TxContext,
-    validators: Vec<(PublicKeyBytes, usize)>,
+    validators: Vec<(PublicKeyBytes, u64)>,
 }
 
 impl Builder {
@@ -129,7 +129,7 @@ impl Builder {
     // }
 
     //TODO actually use the validators added to genesis
-    pub fn add_validator(mut self, public_key: PublicKeyBytes, stake: usize) -> Self {
+    pub fn add_validator(mut self, public_key: PublicKeyBytes, stake: u64) -> Self {
         self.validators.push((public_key, stake));
         self
     }

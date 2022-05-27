@@ -632,9 +632,15 @@ SuiError:
       SignatureKeyGenError:
         NEWTYPE: STR
     110:
+      ValidatorHaltedAtEpochEnd: UNIT
+    111:
+      InconsistentEpochState:
+        STRUCT:
+          - error: STR
+    112:
       RpcError:
         NEWTYPE: STR
-    111:
+    113:
       UnsupportedFeatureError:
         STRUCT:
           - error: STR

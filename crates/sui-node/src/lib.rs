@@ -92,7 +92,7 @@ impl SuiNode {
                 gossip_process(
                     &active_authority,
                     // listen to all authorities (note that gossip_process caps this to total minus 1.)
-                    active_authority.state.committee.voting_rights.len(),
+                    active_authority.state.committee.load().voting_rights.len(),
                 )
                 .await;
             }))

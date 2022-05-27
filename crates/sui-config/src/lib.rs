@@ -26,7 +26,7 @@ pub mod builder;
 pub mod genesis;
 pub mod utils;
 
-const DEFAULT_STAKE: usize = 1;
+const DEFAULT_STAKE: u64 = 1;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NodeConfig {
@@ -140,7 +140,7 @@ impl CommitteeConfig {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ValidatorInfo {
     public_key: PublicKeyBytes,
-    stake: usize,
+    stake: u64,
     network_address: Multiaddr,
 }
 
@@ -153,7 +153,7 @@ impl ValidatorInfo {
         self.public_key
     }
 
-    pub fn stake(&self) -> usize {
+    pub fn stake(&self) -> u64 {
         self.stake
     }
 
@@ -384,7 +384,7 @@ impl GenesisConfig {
 pub struct ValidatorGenesisInfo {
     pub key_pair: KeyPair,
     pub network_address: Multiaddr,
-    pub stake: usize,
+    pub stake: u64,
     pub narwhal_primary_to_primary: Multiaddr,
     pub narwhal_worker_to_primary: Multiaddr,
     pub narwhal_primary_to_worker: Multiaddr,
