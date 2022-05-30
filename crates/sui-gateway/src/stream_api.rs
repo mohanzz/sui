@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Mysten Labs, Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 use futures::TryStream;
 use std::fmt::Display;
 use std::sync::Arc;
@@ -17,10 +20,10 @@ use sui_types::base_types::SuiAddress;
 
 #[rpc(server, client, namespace = "sui")]
 pub trait StreamApi {
-    #[subscription(name = "subscribeEvents", unsubscribe = "unsubEvents", item = SuiEvent)]
+    #[subscription(name = "subscribeEvents", item = SuiEvent)]
     fn sub_event(&self, event_type: String);
 
-    #[subscription(name = "subscribeTransactions", unsubscribe = "unsubTransactions", item = SuiCertifiedTransaction)]
+    #[subscription(name = "subscribeTransactions", item = SuiCertifiedTransaction)]
     fn sub_transaction(&self, sender: SuiAddress);
 }
 
