@@ -18,10 +18,10 @@ use sui_core::{
     authority_client::NetworkAuthorityClient,
     checkpoints::CheckpointStore,
 };
+use sui_gateway::event_api::EventApiServer;
+use sui_gateway::event_api::{EventApiImpl, SuiEventManager};
 use sui_gateway::json_rpc::JsonRpcServerBuilder;
 use sui_gateway::read_api::{FullNodeApi, ReadApi};
-use sui_gateway::stream_api::StreamApiServer;
-use sui_gateway::stream_api::{StreamApiImpl, SuiStreamManager};
 use sui_network::api::ValidatorServer;
 use sui_storage::IndexStore;
 
@@ -147,9 +147,8 @@ impl SuiNode {
 
             let ws_server = WsServerBuilder::default().build("127.0.0.1:0").await?;
             let server_addr = ws_server.local_addr()?;
-            let event_manager = Arc::new(SuiStreamManager::default());
-            let ws_handle =
-                ws_server.start(StreamApiImpl::new(event_manager.clone()).into_rpc())?;
+            let event_manager = Arc::new(SuiEventManager::default());
+            let ws_handle = ws_server.start(EventApiImpl::new(event_manager.clone()).into_rpc())?;
 
             info!("Starting WS endpoint at ws://{}", server_addr);
 

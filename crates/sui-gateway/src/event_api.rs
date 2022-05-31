@@ -19,35 +19,38 @@ use sui_core::gateway_types::{SuiCertifiedTransaction, SuiEvent};
 use sui_types::base_types::SuiAddress;
 
 #[rpc(server, client, namespace = "sui")]
-pub trait StreamApi {
-    #[subscription(name = "subscribeEvents", item = SuiEvent)]
-    fn sub_event(&self, event_type: String);
+pub trait EventApi {
+    #[subscription(name = "subscribeMoveEvents", item = SuiEvent)]
+    fn sub_move_event(&self, move_event_type: String);
 
     #[subscription(name = "subscribeTransactions", item = SuiCertifiedTransaction)]
     fn sub_transaction(&self, sender: SuiAddress);
+
+    #[subscription(name = "subscribeNetworkEvent", item = SuiEvent)]
+    fn sub_network_event(&self);
 }
 
-pub struct SuiStreamManager {
-    event_broadcast: Sender<SuiEvent>,
+pub struct SuiEventManager {
+    move_event_broadcast: Sender<SuiEvent>,
     transaction_broadcast: Sender<SuiCertifiedTransaction>,
 }
 
-impl Default for SuiStreamManager {
+impl Default for SuiEventManager {
     fn default() -> Self {
         Self {
-            event_broadcast: broadcast::channel(16).0,
+            move_event_broadcast: broadcast::channel(16).0,
             transaction_broadcast: broadcast::channel(16).0,
         }
     }
 }
 
-impl SuiStreamManager {
+impl SuiEventManager {
     pub fn broadcast_event(&self, event: SuiEvent) {
-        if self.event_broadcast.receiver_count() > 0 {
+        if self.move_event_broadcast.receiver_count() > 0 {
             let event_type = event.type_.clone();
-            match self.event_broadcast.send(event) {
+            match self.move_event_broadcast.send(event) {
                 Ok(num) => {
-                    debug!("Broadcast event [{event_type}] to {num} peers.")
+                    debug!("Broadcast Move event [{event_type}] to {num} peers.")
                 }
                 Err(e) => {
                     warn!("Error broadcasting event [{event_type}]. Error: {e}")
@@ -71,20 +74,20 @@ impl SuiStreamManager {
     }
 }
 
-pub struct StreamApiImpl {
-    manager: Arc<SuiStreamManager>,
+pub struct EventApiImpl {
+    manager: Arc<SuiEventManager>,
 }
 
-impl StreamApiImpl {
-    pub fn new(manager: Arc<SuiStreamManager>) -> Self {
+impl EventApiImpl {
+    pub fn new(manager: Arc<SuiEventManager>) -> Self {
         Self { manager }
     }
 }
 
-impl StreamApiServer for StreamApiImpl {
-    fn sub_event(&self, pending: PendingSubscription, event_type: String) {
+impl EventApiServer for EventApiImpl {
+    fn sub_move_event(&self, pending: PendingSubscription, event_type: String) {
         if let Some(sink) = pending.accept() {
-            let stream = BroadcastStream::new(self.manager.event_broadcast.subscribe());
+            let stream = BroadcastStream::new(self.manager.move_event_broadcast.subscribe());
             let stream =
                 stream.filter(move |event| matches!(event, Ok(event) if event.type_ == event_type));
             spawn_subscript(sink, stream);
@@ -97,6 +100,10 @@ impl StreamApiServer for StreamApiImpl {
             let stream = stream.filter(move |tx| matches!(tx, Ok(tx) if tx.data.sender == sender));
             spawn_subscript(sink, stream);
         }
+    }
+
+    fn sub_network_event(&self, _pending: PendingSubscription) {
+        todo!()
     }
 }
 
